@@ -1,0 +1,68 @@
+buildscript {
+	repositories {
+		maven {
+			url "https://nexus.mvmyun.com/repository/maven-public/"
+		}
+	}
+}
+
+plugins {
+	id 'org.springframework.boot' version '2.3.4.RELEASE'
+	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+	id 'java'
+	id 'groovy'
+	id 'org.springframework.cloud.contract' version '2.2.4.RELEASE'
+	id 'maven-publish'
+}
+
+ext {
+	set('springCloudVersion', "Hoxton.SR8")
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+group = 'com.sjlh.qunar'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	maven {
+		url "https://nexus.mvmyun.com/repository/maven-public/"
+	}
+}
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+	implementation 'org.springframework.cloud:spring-cloud-starter-sleuth'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+//	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	implementation 'com.sjlh.springmvc:springmvc-log:0.0.1-SNAPSHOT'
+	implementation 'com.sjlh.qunar:qunar-client-spring:0.0.2'
+	implementation 'com.sjlh.hotel:crs-client:0.0.2'
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'mysql:mysql-connector-java'
+	runtimeOnly 'org.springframework.kafka:spring-kafka'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation('org.springframework.boot:spring-boot-starter-test') {
+		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+	}
+}
+
+test {
+	useJUnitPlatform()
+}
+
+contracts {
+	failOnNoContracts false
+}

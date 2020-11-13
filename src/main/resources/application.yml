@@ -1,0 +1,37 @@
+server:
+  port: 6889
+spring:
+  application:
+    name: qunar-order
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.1.43:3306/room_orders_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+    username: dev_member
+    password: dev123456
+
+app:
+  id: qunar-order
+info:
+  app:
+    name: qunar-order
+    version: 0.0.1.SNAPSHOT
+
+#eureka:
+#  instance:
+#    registry:
+#    hostname: 192.168.10.149
+#  client:
+#    enabled: true
+#    registerWithEureka: true
+#    serviceUrl:
+#      defaultZone: http://192.168.10.149:8761/eureka/
+#    healthcheck:
+#      enabled: true
+com:
+  sjlh:
+    web:
+      log:
+        enabled: true
+        appender:
+          type: url
+
