@@ -16,17 +16,17 @@ info:
     name: qunar-order
     version: 0.0.1.SNAPSHOT
 
-#eureka:
-#  instance:
-#    registry:
-#    hostname: 192.168.10.149
-#  client:
-#    enabled: true
-#    registerWithEureka: true
-#    serviceUrl:
-#      defaultZone: http://192.168.10.149:8761/eureka/
-#    healthcheck:
-#      enabled: true
+eureka:
+  instance:
+    registry:
+    hostname: localhost
+  client:
+    enabled: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://192.168.1.110:8761/eureka/
+    healthcheck:
+      enabled: true
 com:
   sjlh:
     web:

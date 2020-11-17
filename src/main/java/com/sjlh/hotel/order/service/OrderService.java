@@ -1,26 +1,29 @@
 package com.sjlh.hotel.order.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sjlh.hotel.crs.core.CrsOrderService;
 import com.sjlh.hotel.crs.model.*;
 import com.sjlh.hotel.order.core.ResStatus;
+import com.sjlh.hotel.order.dto.req.PayReq;
+import com.sjlh.hotel.order.dto.res.ProductInfoRes;
+import com.sjlh.hotel.order.dto.res.SimpleRes;
 import com.sjlh.hotel.order.entity.DrpOrder;
 import com.sjlh.hotel.order.entity.DrpOrderDetail;
 import com.sjlh.hotel.order.entity.OrderCustomerInfo;
+import com.sjlh.hotel.order.feign.client.PayFeignClient;
+import com.sjlh.hotel.order.feign.client.ProductInfoFeignClient;
 import com.sjlh.hotel.order.repository.DrpOrderDetailRepository;
 import com.sjlh.hotel.order.repository.DrpOrderRepository;
 import com.sjlh.hotel.order.repository.OrderCustomerInfoRepository;
 import com.sjlh.hotel.qunar.core.ArrangeType;
 import com.sjlh.hotel.qunar.core.OrderOpt;
 import com.sjlh.hotel.qunar.core.QunarService;
-import com.sjlh.hotel.qunar.model.OptOrderRequestDto;
-import com.sjlh.hotel.qunar.model.OrderInfoResponseDto;
-import com.sjlh.hotel.qunar.model.QueryOrderRequestDto;
-import com.sjlh.hotel.qunar.model.QueryOrderResponseDto;
+import com.sjlh.hotel.qunar.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.text.ParseException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -52,6 +55,14 @@ public class OrderService {
     @Autowired
     private CrsOrderService crsOrderService;
 
+    @Autowired
+    private ProductInfoFeignClient productInfoFeignClient;
+
+    @Autowired
+    private PayFeignClient payFeignClient;
+
+    public final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * 同步qunar订单，放在消息中
      */
@@ -80,7 +91,7 @@ public class OrderService {
     /**
      * 从消息中取出数据，并创建订单
      */
-    public OrderCreateRsp createOrder() throws ParseException {
+    public OrderCreateRsp createOrder() throws JsonProcessingException {
 
         OrderCreateRsp crsRoomOrderRsp = new OrderCreateRsp();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -98,6 +109,8 @@ public class OrderService {
         //保存订单入住人信息
         orderCustomerInfoRepository.save(orderCustomerInfo);
 
+        //查询产品信息
+        ProductInfoRes productInfo = productInfoFeignClient.getInfo("4819");
 
         LocalDate checkinDate = order.getCheckinDate(); //入住日期
         LocalDate checkoutDate = order.getCheckoutDate();//离店日期
@@ -163,14 +176,39 @@ public class OrderService {
         sb.append("支付方式：授信额度\r\n");
         sb.append("------来源：MVM猫喂猫云平台------");
         crsRoomOrderReq.setRemarks(sb.toString());
+        //使用crsClient， crs创建订单
+        logger.info("调用mvm-drp-crs创建订单，请求参数crsRoomOrderReq===" + objectMapper.writeValueAsString(crsRoomOrderReq));
         crsRoomOrderRsp = crsOrderService.create(crsRoomOrderReq);
+        logger.info("调用mvm-drp-crs创建订单，响应参数crsRoomOrderRsp===" + objectMapper.writeValueAsString(crsRoomOrderRsp));
 
-        OrderOpt opt = OrderOpt.ARRANGE_ROOM;
-        Float money = null;
-        //CRS 创建订单失败
-        if (null != crsRoomOrderRsp && crsRoomOrderRsp.getCode().equals(ResultCode.OK.getValue())){
-            opt= OrderOpt.APPLY_UNSUBSCRIBE;
-            money = Float.valueOf(order.getPayMoney().toString());
+        OrderOpt opt = OrderOpt.ARRANGE_ROOM;  //安排房间
+        Float money = Float.valueOf(order.getPayMoney().toString());
+        //CRS 创建订单
+        if (null != crsRoomOrderRsp && crsRoomOrderRsp.getCode().equals(ResultCode.OK.getValue())){ //成功
+            logger.info("CRS创建订单成功===========");
+            PayReq payReq = new PayReq();
+            payReq.setOrderId(Integer.decode(order.getId().toString()));
+            payReq.setOrderSn(order.getOrderNo());
+            payReq.setMoney(order.getPayMoney());
+            //调用授信支付接口
+            logger.info("调用授信支付，请求参数payReq===" + objectMapper.writeValueAsString(payReq));
+            SimpleRes simpleRes =  payFeignClient.pay(payReq);
+            logger.info("调用授信支付，响应参数simpleRes===" + objectMapper.writeValueAsString(simpleRes));
+            //支付失败
+            if(simpleRes == null || simpleRes.getCode() != 200){
+                logger.error("授信支付失败！");
+                order.setStatus(7); //7：失败
+                order.setUpdateTime(LocalDateTime.now());
+                //更新订单状态
+                drpOrderRepository.save(order);
+            }
+        }else{
+            logger.info("CRS创建订单失败===========");
+            opt= OrderOpt.APPLY_UNSUBSCRIBE;  //申请退订
+            order.setStatus(7); //7：失败
+            order.setUpdateTime(LocalDateTime.now());
+            //更新订单状态
+            drpOrderRepository.save(order);
         }
 
         //订单操作类型推送给qunar
@@ -187,23 +225,26 @@ public class OrderService {
         String checkInDate = LocalDate.now().plusDays(-1).format(fmt);
         List<DrpOrder> orders = drpOrderRepository.findByCheckinDate(checkInDate);
         orders.forEach(o -> {
-            OrderOpt opt = OrderOpt.ARRANGE_ROOM;
+            OrderOpt opt = OrderOpt.ARRANGE_ROOM;  //安排房间
             OrderDetailReq orderDetailReq = new OrderDetailReq();
             orderDetailReq.setCrsOrderId(o.getCrsOrderId());
-            //调用crs接口回去订单信息
+            //调用crs接口获取订单信息
             OrderDetailRsp orderDetailRsp = crsOrderService.detail(orderDetailReq);
             if(orderDetailRsp != null && orderDetailRsp.getStatusCode() != null ){
                 String statusCode = orderDetailRsp.getStatusCode();
                 if(ResStatus.NOSHOW.getStatus().equals(statusCode)) {  //未入住
-                    opt = OrderOpt.CONFIRM_NOSHOW;
+                    opt = OrderOpt.CONFIRM_NOSHOW; //确认未入住
                 } else if(ResStatus.CHECKIN.getStatus().equals(statusCode)){ //入住
-                    opt = OrderOpt.CONFIRM_SHOW;
+                    opt = OrderOpt.CONFIRM_SHOW;  //确认入住
                 }
             }
             //订单操作类型推送给qunar
-            optOrder(o.getOtaOrderNo(),opt,null);
+            try {
+                optOrder(o.getOtaOrderNo(),opt,null);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
         });
-
 
     }
 
@@ -214,7 +255,7 @@ public class OrderService {
      * @param money 用户支付金额 申请退订时才有值
      * @return
      */
-    public OptOrderRequestDto optOrder(String otaOrderNum, OrderOpt opt,Float money){
+    public OptOrderRequestDto optOrder(String otaOrderNum, OrderOpt opt,Float money) throws JsonProcessingException {
         OptOrderRequestDto optOrderRequestDto = new OptOrderRequestDto();
         optOrderRequestDto.setOrderNum(otaOrderNum);
         optOrderRequestDto.setOpt(opt);
@@ -224,7 +265,9 @@ public class OrderService {
             optOrderRequestDto.setMoney(money);
         }
         //调用qunar 订单操作接口
-        qunarService.optOrder(optOrderRequestDto);
+        logger.info("调用qunar订单操作接口，请求参数optOrderRequestDto===" + objectMapper.writeValueAsString(optOrderRequestDto));
+        OptOrderResponseDto optOrderResponseDto = qunarService.optOrder(optOrderRequestDto);
+        logger.info("调用qunar订单操作接口，响应参数optOrderResponseDto===" + objectMapper.writeValueAsString(optOrderResponseDto));
         return optOrderRequestDto;
     }
 }
