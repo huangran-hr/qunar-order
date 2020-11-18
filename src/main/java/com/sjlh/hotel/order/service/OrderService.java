@@ -117,7 +117,7 @@ public class OrderService {
             order.setHotelType(0);//酒店类型 0：红树林系列酒店
             order.setOrderNo("YD123456789");
             order.setOtaOrderNo("D123456789");
-            order.setRoomNum(1);
+            order.setRoomCount(1);
             order.setOrderFloorMoney(Double.valueOf(400));
             order.setPayMoney(Double.valueOf(500));
             order.setTotalMoney(Double.valueOf(500));
@@ -133,10 +133,12 @@ public class OrderService {
             drpOrderRepository.save(order);
 
             DrpOrderDetail drpOrderDetail = new DrpOrderDetail();
+            drpOrderDetail.setOrderId(order.getId());
             //保存订单明细
             drpOrderDetailRepository.save(drpOrderDetail);
 
             OrderCustomerInfo orderCustomerInfo = new OrderCustomerInfo();
+            orderCustomerInfo.setOrderId(order.getId());
             //保存订单入住人信息
             orderCustomerInfoRepository.save(orderCustomerInfo);
 
@@ -152,7 +154,7 @@ public class OrderService {
             crsRoomOrderReq.setOtaOrderNo(order.getOtaOrderNo());
             crsRoomOrderReq.setPmsHotelCode(order.getHotelCode());
             crsRoomOrderReq.setRateCode(order.getRatePlanCode());
-            crsRoomOrderReq.setRoomCount(order.getRoomNum());
+            crsRoomOrderReq.setRoomCount(order.getRoomCount());
             crsRoomOrderReq.setRoomTypeCode(order.getRoomTypeCode());
             crsRoomOrderReq.setTotalPrice(order.getTotalMoney());
             crsRoomOrderReq.setCheckInDate(Date.from(checkinZonedDateTime.toInstant()));
@@ -273,14 +275,11 @@ public class OrderService {
      * 获取前一天的已接单订单，并将订单操作类型推送给qunar
      */
     public void optOrderPush(){
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String checkInDate = LocalDate.now().plusDays(-1).format(fmt);
-        List<DrpOrder> orders = drpOrderRepository.findByCheckinDate(checkInDate);
+        List<DrpOrder> orders = drpOrderRepository.findByCheckinDate(LocalDate.now());
         orders.forEach(o -> {
             if(o.getStatus() == 2){ //已接单
                 OrderDetailReq orderDetailReq = new OrderDetailReq();
                 orderDetailReq.setCrsOrderId(Integer.decode(o.getCrsOrderId()));
-
                 try {
                     //调用crs接口获取订单信息
                     logger.info("调用crs接口获取订单信息，请求参数orderDetailReq===" + objectMapper.writeValueAsString(orderDetailReq));

@@ -43,8 +43,8 @@ public class DrpOrder implements Serializable {
     /**
      * 预定房间数
      */
-    @Column(name = "room_num")
-    private Integer roomNum;
+    @Column(name = "room_count")
+    private Integer roomCount;
 
     /**
      * 订单总金额
