@@ -96,10 +96,39 @@ public class OrderService {
         OrderCreateRsp crsRoomOrderRsp = new OrderCreateRsp();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+        //查询产品信息
+        ProductInfoRes productInfo = productInfoFeignClient.getInfo("4819");
+
         DrpOrder order = new DrpOrder();
+        order.setStatus(2); //已接单
+        order.setCashAdvanceType(0); //预付
+        order.setChannelCode("qunar");
+        order.setCheckinDate(LocalDate.now());
+        order.setCheckoutDate(LocalDate.now().plusDays(1));
+
+        order.setCreateTime(LocalDateTime.now());
+        order.setHotelCode(productInfo.getPmsHotelCode());
+        order.setRatePlanCode(productInfo.getRateCode());
+        order.setRoomTypeCode(productInfo.getRoomTypeCode());
+        order.setHotelName("三亚湾红树林酒店");
+        order.setProductName("大王棕豪华园景房");
+        order.setHotelType(0);//酒店类型 0：红树林系列酒店
+        order.setOrderNo("YD123456789");
+        order.setOtaOrderNo("D123456789");
+        order.setRoomNum(1);
+        order.setOrderFloorMoney(Double.valueOf(400));
+        order.setPayMoney(Double.valueOf(500));
+        order.setTotalMoney(Double.valueOf(500));
+
+        order.setContactName("测试"); //联系人
+        order.setPhone("13001108111");
+        order.setPayType("CREDIT_PAY");
+
+        order.setRemark("ceshi");
+        order.setCreateTime(LocalDateTime.now());
+        order.setUpdateTime(LocalDateTime.now());
         //保存订单
         drpOrderRepository.save(order);
-
 
         DrpOrderDetail drpOrderDetail = new DrpOrderDetail();
         //保存订单明细
@@ -109,9 +138,6 @@ public class OrderService {
         //保存订单入住人信息
         orderCustomerInfoRepository.save(orderCustomerInfo);
 
-        //查询产品信息
-        ProductInfoRes productInfo = productInfoFeignClient.getInfo("4819");
-
         LocalDate checkinDate = order.getCheckinDate(); //入住日期
         LocalDate checkoutDate = order.getCheckoutDate();//离店日期
 
@@ -120,23 +146,23 @@ public class OrderService {
 
         OrderCreateReq crsRoomOrderReq = new OrderCreateReq();
         // crs订单创建
-        crsRoomOrderReq.setOrderNo("YD12345678");
-        crsRoomOrderReq.setOtaOrderNo("D12345678");
-        crsRoomOrderReq.setPmsHotelCode("MTS");
-        crsRoomOrderReq.setRateCode("MBUOB");
-        crsRoomOrderReq.setRoomCount(1);
-        crsRoomOrderReq.setRoomTypeCode("6DS");
-        crsRoomOrderReq.setTotalPrice(Double.valueOf(500));
+        crsRoomOrderReq.setOrderNo(order.getOrderNo());
+        crsRoomOrderReq.setOtaOrderNo(order.getOtaOrderNo());
+        crsRoomOrderReq.setPmsHotelCode(order.getHotelCode());
+        crsRoomOrderReq.setRateCode(order.getRatePlanCode());
+        crsRoomOrderReq.setRoomCount(order.getRoomNum());
+        crsRoomOrderReq.setRoomTypeCode(order.getRoomTypeCode());
+        crsRoomOrderReq.setTotalPrice(order.getTotalMoney());
         crsRoomOrderReq.setCheckInDate(Date.from(checkinZonedDateTime.toInstant()));
         crsRoomOrderReq.setCheckOutDate(Date.from(checkoutZonedDateTime.toInstant()));
-        crsRoomOrderReq.setProductName("大王棕豪华园景房");
-        crsRoomOrderReq.setMobile("13001108111");
+        crsRoomOrderReq.setProductName(order.getProductName());
+        crsRoomOrderReq.setMobile(order.getPhone());
 
         List<OrderGuest> crsGuests = new ArrayList<OrderGuest>();
         OrderGuest orderGuest =  new OrderGuest();
         orderGuest.setFirstName("试");
         orderGuest.setLastName("测");
-        orderGuest.setName("测试");
+        orderGuest.setName(order.getContactName());
         crsGuests.add(orderGuest);
         crsRoomOrderReq.setGuests(crsGuests);
 
@@ -186,27 +212,27 @@ public class OrderService {
         //CRS 创建订单
         if (null != crsRoomOrderRsp && crsRoomOrderRsp.getCode().equals(ResultCode.OK.getValue())){ //成功
             logger.info("CRS创建订单成功===========");
-            PayReq payReq = new PayReq();
-            payReq.setOrderId(Integer.decode(order.getId().toString()));
-            payReq.setOrderSn(order.getOrderNo());
-            payReq.setMoney(order.getPayMoney());
-            //调用授信支付接口
-            logger.info("调用授信支付，请求参数payReq===" + objectMapper.writeValueAsString(payReq));
-            SimpleRes simpleRes =  payFeignClient.pay(payReq);
-            logger.info("调用授信支付，响应参数simpleRes===" + objectMapper.writeValueAsString(simpleRes));
-            //支付失败
-            if(simpleRes == null || simpleRes.getCode() != 200){
-                logger.error("授信支付失败！");
-                order.setStatus(7); //7：失败
-                order.setUpdateTime(LocalDateTime.now());
-                //更新订单状态
-                drpOrderRepository.save(order);
+            String crsOrderId = crsRoomOrderRsp.getCrs_order_id();
+            order.setCrsOrderId(crsOrderId);
+            StringBuffer confirmNo = new StringBuffer();
+            confirmNo.append(crsOrderId);
+            if (null != crsRoomOrderRsp.getSplitOrderIds()) {
+                confirmNo.append(",");
+                confirmNo.append(crsRoomOrderRsp.getSplitOrderIds());
             }
+            order.setConfirmNo(confirmNo.toString());
+
+            //支付
+            toPay(order);
+
         }else{
             logger.info("CRS创建订单失败===========");
             opt= OrderOpt.APPLY_UNSUBSCRIBE;  //申请退订
-            order.setStatus(7); //7：失败
+            order.setStatus(4); //已拒单
             order.setUpdateTime(LocalDateTime.now());
+        }
+
+        if(order.getId() != null){
             //更新订单状态
             drpOrderRepository.save(order);
         }
@@ -215,6 +241,28 @@ public class OrderService {
         optOrder(order.getOtaOrderNo(),opt,money);
 
         return crsRoomOrderRsp;
+    }
+
+    /**
+     * 支付
+     * @param order
+     * @throws JsonProcessingException
+     */
+    private void toPay(DrpOrder order) throws JsonProcessingException {
+        PayReq payReq = new PayReq();
+        payReq.setOrderId(Integer.decode(order.getId().toString()));
+        payReq.setOrderSn(order.getOrderNo());
+        payReq.setMoney(order.getPayMoney());
+        //调用授信支付接口
+        logger.info("调用授信支付，请求参数payReq===" + objectMapper.writeValueAsString(payReq));
+        SimpleRes simpleRes =  payFeignClient.pay(payReq);
+        logger.info("调用授信支付，响应参数simpleRes===" + objectMapper.writeValueAsString(simpleRes));
+        //支付失败
+        if(simpleRes == null || simpleRes.getCode() != 200){
+            logger.error("授信支付失败！");
+            order.setStatus(7); //7：失败
+            order.setUpdateTime(LocalDateTime.now());
+        }
     }
 
     /**
@@ -227,7 +275,7 @@ public class OrderService {
         orders.forEach(o -> {
             OrderOpt opt = OrderOpt.ARRANGE_ROOM;  //安排房间
             OrderDetailReq orderDetailReq = new OrderDetailReq();
-            orderDetailReq.setCrsOrderId(o.getCrsOrderId());
+            orderDetailReq.setCrsOrderId(Integer.decode(o.getCrsOrderId()));
             //调用crs接口获取订单信息
             OrderDetailRsp orderDetailRsp = crsOrderService.detail(orderDetailReq);
             if(orderDetailRsp != null && orderDetailRsp.getStatusCode() != null ){

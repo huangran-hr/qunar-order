@@ -68,7 +68,7 @@ public class DrpOrder implements Serializable {
      * 酒店代码
      */
     @Column(name = "hotel_code")
-    private Long hotelCode;
+    private String hotelCode;
 
     /**
      * 酒店类型 0：红树林系列酒店 1：直签酒店 2：泰坦云酒店
@@ -131,7 +131,7 @@ public class DrpOrder implements Serializable {
      * crs订单id
      */
     @Column(name = "crs_order_id")
-    private Integer crsOrderId;
+    private String crsOrderId;
 
     /**
      * 确认号（多个用英文逗号隔开）
