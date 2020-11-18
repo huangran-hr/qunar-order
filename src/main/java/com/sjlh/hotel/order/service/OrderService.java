@@ -65,9 +65,9 @@ public class OrderService {
     public void getOrders(){
         try {
             QueryOrderRequestDto queryOrderRequestDto = new QueryOrderRequestDto();
-//            queryOrderRequestDto.setFromDate();
-//            queryOrderRequestDto.setToDate();
-//            queryOrderRequestDto.setVersion();
+            queryOrderRequestDto.setFromDate(LocalDateTime.now().plusMinutes(-5));
+            queryOrderRequestDto.setToDate(LocalDateTime.now());
+            queryOrderRequestDto.setVersion("1.0");
             //获取去哪儿订单
             QueryOrderResponseDto queryOrderResponseDto = qunarService.queryOrderList(queryOrderRequestDto);
 
