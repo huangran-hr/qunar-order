@@ -39,16 +39,9 @@ public class OrderController {
      * 从消息中取出数据，并创建订单
      */
     @RequestMapping(value = "order/create")
-    public OrderCreateRsp createOrder(){
-        OrderCreateRsp crsResult = new OrderCreateRsp();
-        try {
-            crsResult  = orderService.createOrder();
-        }catch (Exception e){
-            crsResult.setCode(ResultCode.INTERNAL_SERVER_ERROR.getValue());
-            crsResult.setMessage("创建订单异常");
-            e.printStackTrace();
-        }
-        return crsResult;
+    public String createOrders(){
+        orderService.createOrders();
+        return "SUCCESS";
     }
 
     /**
@@ -57,14 +50,8 @@ public class OrderController {
      */
     @RequestMapping(value = "order/opt/push")
     public String optOrderPush(){
-        String code = "SUCCESS";
-        try {
-            orderService.optOrderPush();
-        }catch (Exception e){
-            code = "FAIL";
-            e.printStackTrace();
-        }
-        return code;
+        orderService.optOrderPush();
+        return "SUCCESS";
     }
 
 }

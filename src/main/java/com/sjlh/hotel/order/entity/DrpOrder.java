@@ -152,6 +152,12 @@ public class DrpOrder implements Serializable {
     private Integer status;
 
     /**
+     * 入住状态  0：未入住  1：已入住
+     */
+    @Column(name = "checkin_status")
+    private Integer checkinStatus;
+
+    /**
      * 渠道code
      */
     @Column(name = "channel_code")
