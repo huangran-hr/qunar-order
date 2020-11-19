@@ -7,4 +7,5 @@ public class ProductInfoRes {
   private String pmsHotelCode;
   private String roomTypeCode;
   private String rateCode;
+  private String productName;
 }

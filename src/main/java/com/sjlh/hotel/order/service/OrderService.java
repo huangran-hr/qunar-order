@@ -2,10 +2,12 @@ package com.sjlh.hotel.order.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.sjlh.hotel.crs.core.CrsOrderService;
 import com.sjlh.hotel.crs.model.*;
 import com.sjlh.hotel.order.core.ResStatus;
 import com.sjlh.hotel.order.dto.req.PayReq;
+import com.sjlh.hotel.order.dto.res.EveryDayPrice;
 import com.sjlh.hotel.order.dto.res.ProductInfoRes;
 import com.sjlh.hotel.order.dto.res.SimpleRes;
 import com.sjlh.hotel.order.entity.DrpOrder;
@@ -23,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.awt.geom.RoundRectangle2D;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -88,14 +92,16 @@ public class OrderService {
      * 从消息中取出数据，并创建订单
      */
     public void createOrders() {
-        createOrder();
+        OrderInfoResponseDto orderInfoResponseDto = new OrderInfoResponseDto();
+        createOrder(orderInfoResponseDto);
     }
 
     /**
      * 创建订单
      */
-    public void createOrder() {
+    public void createOrder(OrderInfoResponseDto orderInfoResponseDto) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter fmt2 = DateTimeFormatter.ofPattern("yyyyMMdd");
 
         try {
             //查询产品信息
@@ -105,42 +111,109 @@ public class OrderService {
             order.setStatus(2); //已接单
             order.setCashAdvanceType(0); //预付
             order.setChannelCode("qunar");
-            order.setCheckinDate(LocalDate.now());
-            order.setCheckoutDate(LocalDate.now().plusDays(1));
+
+            order.setCheckinDate(LocalDate.parse(orderInfoResponseDto.getCheckInDate().toString(),fmt2));
+            order.setCheckoutDate(LocalDate.parse(orderInfoResponseDto.getCheckOutDate().toString(),fmt2));
 
             order.setCreateTime(LocalDateTime.now());
             order.setHotelCode(productInfo.getPmsHotelCode());
             order.setRatePlanCode(productInfo.getRateCode());
             order.setRoomTypeCode(productInfo.getRoomTypeCode());
-            order.setHotelName("三亚湾红树林酒店");
-            order.setProductName("大王棕豪华园景房");
+            order.setHotelName(orderInfoResponseDto.getHotelName());
+            order.setProductName(productInfo.getProductName());
             order.setHotelType(0);//酒店类型 0：红树林系列酒店
             order.setOrderNo("YD123456789");
-            order.setOtaOrderNo("D123456789");
+            order.setOtaOrderNo(orderInfoResponseDto.getOrderNum());
             order.setRoomCount(1);
-            order.setOrderFloorMoney(Double.valueOf(400));
-            order.setPayMoney(Double.valueOf(500));
-            order.setTotalMoney(Double.valueOf(500));
+//            order.setHotelName("三亚湾红树林酒店");
+//            order.setProductName("大王棕豪华园景房");
+//            order.setHotelType(0);//酒店类型 0：红树林系列酒店
+//            order.setOrderNo("YD123456789");
+//            order.setOtaOrderNo("D123456789");
+//            order.setRoomCount(1);
 
-            order.setContactName("测试"); //联系人
-            order.setPhone("13001108111");
+//            order.setOrderFloorMoney(Double.valueOf(400));
+//            order.setPayMoney(Double.valueOf(500));
+//            order.setTotalMoney(Double.valueOf(500));
+
+            order.setOrderFloorMoney(orderInfoResponseDto.getTotalBasePrice().doubleValue());
+            order.setPayMoney(orderInfoResponseDto.getPayMoney());
+            order.setTotalMoney(orderInfoResponseDto.getPayMoney());
+
+            order.setContactName(orderInfoResponseDto.getContactName()); //联系人
+            order.setPhone(orderInfoResponseDto.getContactPhone()); //联系人手机号
             order.setPayType("CREDIT_PAY");
+//            order.setPhone("13001108111");
+//            order.setRemark("ceshi");
 
-            order.setRemark("ceshi");
+            List<String> remarkList = orderInfoResponseDto.getRemark();
+            StringBuilder remarks = new StringBuilder();
+            if(remarkList != null){
+                remarkList.forEach(r->remarks.append(r + ","));
+                order.setRemark(remarks.deleteCharAt(remarks.length()-1).toString());
+            }
+
             order.setCreateTime(LocalDateTime.now());
             order.setUpdateTime(LocalDateTime.now());
             //保存订单
             drpOrderRepository.save(order);
 
-            DrpOrderDetail drpOrderDetail = new DrpOrderDetail();
-            drpOrderDetail.setOrderId(order.getId());
-            //保存订单明细
-            drpOrderDetailRepository.save(drpOrderDetail);
+            //crs入参
+            OrderCreateReq crsRoomOrderReq = new OrderCreateReq();
+            //crs客户信息
+            List<OrderGuest> crsGuests = new ArrayList<OrderGuest>();
+            //crs价格明细列表
+            List<OrderDayPrice> crsDayPriceList = new ArrayList<>();
+            StringBuilder priceInfo = new StringBuilder();
 
-            OrderCustomerInfo orderCustomerInfo = new OrderCustomerInfo();
-            orderCustomerInfo.setOrderId(order.getId());
-            //保存订单入住人信息
-            orderCustomerInfoRepository.save(orderCustomerInfo);
+            String everyDayPriceStr = orderInfoResponseDto.getEveryDayPrice(); //每日价格列表
+            List<EveryDayPrice> everyDayPrices = objectMapper.readValue(everyDayPriceStr, TypeFactory.defaultInstance().constructCollectionType(List.class, EveryDayPrice.class));
+            everyDayPrices.forEach(e -> {
+                DrpOrderDetail drpOrderDetail = new DrpOrderDetail();
+                drpOrderDetail.setOrderId(order.getId());
+                drpOrderDetail.setDate(LocalDate.parse(e.getDate()));
+                drpOrderDetail.setSellPrice(e.getPrice());
+                drpOrderDetail.setFloorPrice(e.getPrice());
+                drpOrderDetail.setCreateTime(LocalDateTime.now());
+                drpOrderDetail.setUpdateTime(LocalDateTime.now());
+
+                //保存订单明细
+                drpOrderDetailRepository.save(drpOrderDetail);
+
+                //crs价格明细
+                OrderDayPrice orderDayPrice = new OrderDayPrice();
+                orderDayPrice.setDate(Date.from(LocalDate.parse(e.getDate()).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                orderDayPrice.setPrice(e.getPrice());
+                crsDayPriceList.add(orderDayPrice);
+                crsRoomOrderReq.setDayPrices(crsDayPriceList);
+
+                //comments 中预定明细
+                priceInfo.append(e.getDate());
+                priceInfo.append("(" + e.getPrice() + ")  ");
+            });
+
+
+
+            String customerNameStr = orderInfoResponseDto.getCustomerName(); //入住人
+            String[] customerNames =  customerNameStr.split("|");
+            for (String customerName : customerNames){
+                OrderCustomerInfo orderCustomerInfo = new OrderCustomerInfo();
+                orderCustomerInfo.setOrderId(order.getId());
+                orderCustomerInfo.setLastName(customerName.substring(0,1));
+                orderCustomerInfo.setFirstName(customerName.substring(1,customerName.length()));
+                orderCustomerInfo.setFullName(customerName);
+                //保存订单入住人信息
+                orderCustomerInfoRepository.save(orderCustomerInfo);
+
+                //crs客户信息
+                OrderGuest orderGuest =  new OrderGuest();
+                orderGuest.setFirstName(orderCustomerInfo.getFirstName());
+                orderGuest.setLastName(orderCustomerInfo.getLastName());
+                orderGuest.setName(customerName);
+                crsGuests.add(orderGuest);
+                crsRoomOrderReq.setGuests(crsGuests);
+            }
+
 
             LocalDate checkinDate = order.getCheckinDate(); //入住日期
             LocalDate checkoutDate = order.getCheckoutDate();//离店日期
@@ -148,7 +221,6 @@ public class OrderService {
             ZonedDateTime checkinZonedDateTime = checkinDate.atStartOfDay(ZoneId.systemDefault());
             ZonedDateTime checkoutZonedDateTime = checkoutDate.atStartOfDay(ZoneId.systemDefault());
 
-            OrderCreateReq crsRoomOrderReq = new OrderCreateReq();
             // crs订单创建
             crsRoomOrderReq.setOrderNo(order.getOrderNo());
             crsRoomOrderReq.setOtaOrderNo(order.getOtaOrderNo());
@@ -162,13 +234,6 @@ public class OrderService {
             crsRoomOrderReq.setProductName(order.getProductName());
             crsRoomOrderReq.setMobile(order.getPhone());
 
-            List<OrderGuest> crsGuests = new ArrayList<OrderGuest>();
-            OrderGuest orderGuest =  new OrderGuest();
-            orderGuest.setFirstName("试");
-            orderGuest.setLastName("测");
-            orderGuest.setName(order.getContactName());
-            crsGuests.add(orderGuest);
-            crsRoomOrderReq.setGuests(crsGuests);
 
             //crs价格明细
 //        List<OrderDayPrice> crsDayPriceList = new ArrayList<>();
@@ -199,7 +264,7 @@ public class OrderService {
             sb.append("房型产品名称：" + order.getProductName() + "\r\n");
             sb.append("客房订单号：" + order.getOrderNo() + "\r\n");
             sb.append("预订时间：" + order.getCheckinDate().format(fmt) + "-" + order.getCheckoutDate().format(fmt) + " 预订" + days + "晚 共计" + order.getTotalMoney() + "元" + "\r\n");
-//            sb.append("预订明细：2020.09.27(710.0) " + order.getOrderNo() + "\r\n");
+            sb.append("预订明细： " + priceInfo.toString() + "\r\n");
             String remark = "无";
             sb.append("用户需求：" + remark + "\r\n");
             sb.append("支付状态：已支付\r\n");
