@@ -138,7 +138,7 @@ public class OrderService {
 
             order.setOrderFloorMoney(orderInfoResponseDto.getTotalBasePrice().doubleValue());
             order.setPayMoney(orderInfoResponseDto.getPayMoney());
-            order.setTotalMoney(orderInfoResponseDto.getPayMoney());
+            order.setTotalMoney(orderInfoResponseDto.getTotalBasePrice().doubleValue());
 
             order.setContactName(orderInfoResponseDto.getContactName()); //联系人
             order.setPhone(orderInfoResponseDto.getContactPhone()); //联系人手机号
@@ -146,12 +146,8 @@ public class OrderService {
 //            order.setPhone("13001108111");
 //            order.setRemark("ceshi");
 
-            List<String> remarkList = orderInfoResponseDto.getRemark();
-            StringBuilder remarks = new StringBuilder();
-            if(remarkList != null){
-                remarkList.forEach(r->remarks.append(r + ","));
-                order.setRemark(remarks.deleteCharAt(remarks.length()-1).toString());
-            }
+            String request = orderInfoResponseDto.getRequest(); //特殊要求
+            order.setRemark(request);
 
             order.setCreateTime(LocalDateTime.now());
             order.setUpdateTime(LocalDateTime.now());
@@ -172,8 +168,8 @@ public class OrderService {
                 DrpOrderDetail drpOrderDetail = new DrpOrderDetail();
                 drpOrderDetail.setOrderId(order.getId());
                 drpOrderDetail.setDate(LocalDate.parse(e.getDate()));
-                drpOrderDetail.setSellPrice(e.getPrice());
-                drpOrderDetail.setFloorPrice(e.getPrice());
+                drpOrderDetail.setSellPrice(e.getPrice().doubleValue());
+                drpOrderDetail.setFloorPrice(e.getBasePrice().doubleValue());
                 drpOrderDetail.setCreateTime(LocalDateTime.now());
                 drpOrderDetail.setUpdateTime(LocalDateTime.now());
 
@@ -183,7 +179,7 @@ public class OrderService {
                 //crs价格明细
                 OrderDayPrice orderDayPrice = new OrderDayPrice();
                 orderDayPrice.setDate(Date.from(LocalDate.parse(e.getDate()).atStartOfDay(ZoneId.systemDefault()).toInstant()));
-                orderDayPrice.setPrice(e.getPrice());
+                orderDayPrice.setPrice(e.getPrice().doubleValue());
                 crsDayPriceList.add(orderDayPrice);
                 crsRoomOrderReq.setDayPrices(crsDayPriceList);
 
@@ -200,7 +196,7 @@ public class OrderService {
                 OrderCustomerInfo orderCustomerInfo = new OrderCustomerInfo();
                 orderCustomerInfo.setOrderId(order.getId());
                 orderCustomerInfo.setLastName(customerName.substring(0,1));
-                orderCustomerInfo.setFirstName(customerName.substring(1,customerName.length()));
+                orderCustomerInfo.setFirstName(customerName.substring(1));
                 orderCustomerInfo.setFullName(customerName);
                 //保存订单入住人信息
                 orderCustomerInfoRepository.save(orderCustomerInfo);
@@ -213,6 +209,9 @@ public class OrderService {
                 crsGuests.add(orderGuest);
                 crsRoomOrderReq.setGuests(crsGuests);
             }
+
+            //授信支付
+            toPay(order);
 
 
             LocalDate checkinDate = order.getCheckinDate(); //入住日期
@@ -265,8 +264,7 @@ public class OrderService {
             sb.append("客房订单号：" + order.getOrderNo() + "\r\n");
             sb.append("预订时间：" + order.getCheckinDate().format(fmt) + "-" + order.getCheckoutDate().format(fmt) + " 预订" + days + "晚 共计" + order.getTotalMoney() + "元" + "\r\n");
             sb.append("预订明细： " + priceInfo.toString() + "\r\n");
-            String remark = "无";
-            sb.append("用户需求：" + remark + "\r\n");
+            sb.append("用户需求：" + request + "\r\n");
             sb.append("支付状态：已支付\r\n");
             sb.append("支付方式：授信额度\r\n");
             sb.append("------来源：MVM猫喂猫云平台------");
@@ -291,14 +289,14 @@ public class OrderService {
                 }
                 order.setConfirmNo(confirmNo.toString());
 
-                //支付
-                toPay(order);
-
             }else{
                 logger.info("CRS创建订单失败===========");
                 opt= OrderOpt.APPLY_UNSUBSCRIBE;  //申请退订
                 order.setStatus(4); //已拒单
                 order.setUpdateTime(LocalDateTime.now());
+
+                //退授信额度
+                toRefund(order);
             }
 
             if(order.getId() != null){
@@ -333,6 +331,26 @@ public class OrderService {
             logger.error("授信支付失败！");
             order.setStatus(7); //7：失败
             order.setUpdateTime(LocalDateTime.now());
+        }
+    }
+
+    /**
+     * 退款
+     * @param order
+     * @throws JsonProcessingException
+     */
+    private void toRefund(DrpOrder order) throws JsonProcessingException {
+        PayReq payRefundReq = new PayReq();
+        payRefundReq.setOrderId(Integer.decode(order.getId().toString()));
+        payRefundReq.setOrderSn(order.getOrderNo());
+        payRefundReq.setMoney(order.getPayMoney());
+        //调用授信支付接口
+        logger.info("调用退款，请求参数payRefundReq===" + objectMapper.writeValueAsString(payRefundReq));
+        SimpleRes payRefundRes =  qunarServiceFeignClient.payRefund(payRefundReq);
+        logger.info("调用退款，响应参数payRefundRes===" + objectMapper.writeValueAsString(payRefundRes));
+        //退款失败
+        if(payRefundRes == null || payRefundRes.getCode() != 200){
+            logger.error("退款失败！");
         }
     }
 

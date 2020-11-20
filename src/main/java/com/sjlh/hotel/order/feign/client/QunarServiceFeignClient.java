@@ -31,4 +31,12 @@ public interface QunarServiceFeignClient {
      */
     @RequestMapping(method = RequestMethod.POST, value="/pay/pay")
     SimpleRes pay(@RequestBody PayReq PayReq);
+
+    /**
+     * 退款
+     * @param PayReq
+     * @return
+     */
+    @RequestMapping(method = RequestMethod.POST, value="/pay/refund")
+    SimpleRes payRefund(@RequestBody PayReq PayReq);
 }
