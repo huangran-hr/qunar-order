@@ -47,7 +47,7 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- 活动文件的名字会根据fileNamePattern的值，每隔一段时间改变一次 -->
             <!-- 文件名：log/demo.2017-12-05.0.log -->
-            <fileNamePattern>log/jersey.%d.%i.log</fileNamePattern>
+            <fileNamePattern>logs/order.%d.%i.log</fileNamePattern>
             <!-- 每产生一个日志文件，该日志文件的保存期限为30天 -->
             <maxHistory>30</maxHistory>
             <timeBasedFileNamingAndTriggeringPolicy  class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
@@ -73,6 +73,7 @@
     <!-- 控制台输出日志级别 -->
     <root level="ERROR">
         <appender-ref ref="log" />
+        <appender-ref ref="console" />
     </root>
 
     <!-- 指定项目中某个包，当有日志操作行为时的日志记录级别 -->
@@ -90,12 +91,12 @@
     <logger name="com.zaxxer.hikari" level="INFO" additivity="false">
         <appender-ref ref="console"/>
     </logger>
-    <logger name="com.sjlh.hotel.common.logging.LoggingFeature.person" level="INFO" additivity="false">
+    <logger name="com.sjlh.hotel.common.logging.LoggingFeature" level="INFO" additivity="false">
         <appender-ref ref="console" />
         <appender-ref ref="log" />
         <!-- <appender-ref ref="logstash"></appender-ref> -->
     </logger>
-    <logger name="com.sjlh.hotel.order" level="INFO" additivity="false">
+    <logger name="com.sjlh.hotel.order.service" level="INFO" additivity="false">
         <appender-ref ref="console"/>
         <appender-ref ref="orderLog" />
     </logger>

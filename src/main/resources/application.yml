@@ -37,3 +37,19 @@ com:
         appender:
           type: url
 
+#qunar配置
+qunar:
+  query-order-list-target: /api/ota/otaQueryOrder
+  opt-order-target: /api/ota/otaOpt
+  sign-key: FAnAAWGU6OALizbu5Zz4nJXHXd9tH6Ij
+
+# mvm-drp-crs url
+crs:
+  host: 192.168.1.104:8080/crs/order/
+
+#健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
