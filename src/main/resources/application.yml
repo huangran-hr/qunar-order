@@ -8,8 +8,31 @@ spring:
     url: jdbc:mysql://192.168.1.43:3306/room_orders_dev?characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
     username: dev_member
     password: dev123456
+  #时区
   jackson:
     timeZone: Asia/Shanghai
+
+  kafka:
+    bootstrap-servers: 192.168.11.11:31090,192.168.11.12:31090,192.168.11.13:31090
+    consumer:
+      #是否自动提交offset偏移量(默认true)
+      enable-auto-commit: true
+      #自动提交的频率(ms)
+      auto-commit-interval: 100
+      #键的反序列化方式
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      #值的反序列化方式
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      #offset偏移量规则设置
+      auto-offset-reset: earliest
+    producer:
+      #重试次数，0为不启用重试机制
+      retries: 3
+      #acks=0 把消息发送到kafka就认为发送成功,acks=1 把消息发送到kafka leader分区，并且写入磁盘就认为发送成功,acks=all 把消息发送到kafka leader分区，并且leader分区的副本follower对消息进行了同步就任务发送成功
+      acks: 1
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: com.sjlh.hotel.order.serialization.JacksonSerialization
+
 
 app:
   id: qunar-order

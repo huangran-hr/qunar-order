@@ -1,7 +1,5 @@
 package com.sjlh.hotel.order.controller;
 
-import com.sjlh.hotel.crs.model.OrderCreateRsp;
-import com.sjlh.hotel.crs.model.ResultCode;
 import com.sjlh.hotel.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,11 +36,11 @@ public class OrderController {
     /**
      * 从消息中取出数据，并创建订单
      */
-    @RequestMapping(value = "order/create")
-    public String createOrders(){
-        orderService.createOrders();
-        return "SUCCESS";
-    }
+//    @RequestMapping(value = "order/create")
+//    public String createOrders(){
+//        orderService.createOrders();
+//        return "SUCCESS";
+//    }
 
     /**
      * 获取前一天的 已接单订单，并将订单操作类型推送给qunar
@@ -53,5 +51,4 @@ public class OrderController {
         orderService.optOrderPush();
         return "SUCCESS";
     }
-
 }

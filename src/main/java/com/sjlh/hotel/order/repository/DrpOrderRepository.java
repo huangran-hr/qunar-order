@@ -11,4 +11,6 @@ import java.util.List;
 public interface DrpOrderRepository extends JpaRepository<DrpOrder, Long>, JpaSpecificationExecutor<DrpOrder> {
 
     List<DrpOrder> findByCheckinDate(LocalDate checkInDate);
+
+    DrpOrder findByOtaOrderNo(String otaOrderNo);
 }

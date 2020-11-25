@@ -1,10 +1,10 @@
 package com.sjlh.hotel.order.feign.client;
 
 import com.sjlh.hotel.order.dto.req.PayReq;
+import com.sjlh.hotel.order.dto.req.ProductReq;
 import com.sjlh.hotel.order.dto.res.ProductInfoRes;
 import com.sjlh.hotel.order.dto.res.SimpleRes;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public interface QunarServiceFeignClient {
     /**
      * 获取产品信息
-     * @param productId
+     * @param productReq
      * @return
      */
-    @RequestMapping(method = RequestMethod.GET, value="/product/info/{productId}")
-    ProductInfoRes getProductInfo(@PathVariable String productId);
+    @RequestMapping(method = RequestMethod.POST, value="/product/info")
+    ProductInfoRes getProductInfo(@RequestBody ProductReq productReq);
 
     /**
      * 授信支付

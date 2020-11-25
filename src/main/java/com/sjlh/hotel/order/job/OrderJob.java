@@ -30,15 +30,15 @@ public class OrderJob {
         logger.info("同步qunar订单结束==============");
     }
 
-    /**
-     * 同步qunar订单（每6分钟执行一次）
-     */
-    @Scheduled(cron = "0 0/6 * * * ? ")
-    public void createOrders(){
-        logger.info("创建订单开始==============");
-        orderService.createOrders();
-        logger.info("创建订单结束==============");
-    }
+//    /**
+//     * 同步qunar订单（每6分钟执行一次）
+//     */
+//    @Scheduled(cron = "0 0/6 * * * ? ")
+//    public void createOrders(){
+//        logger.info("创建订单开始==============");
+//        orderService.createOrders();
+//        logger.info("创建订单结束==============");
+//    }
 
     /**
      * 订单操作推送（每天5点执行一次）
