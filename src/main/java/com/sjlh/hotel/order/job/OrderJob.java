@@ -21,9 +21,9 @@ public class OrderJob {
     private OrderService orderService;
 
     /**
-     * 同步qunar订单（每5分钟执行一次）
+     * 同步qunar订单（每1分钟执行一次）
      */
-    @Scheduled(cron = "0 0/5 * * * ? ")
+    @Scheduled(cron = "0 0/1 * * * ? ")
     public void syncOrder(){
         logger.info("同步qunar订单开始==============");
         orderService.getOrders();

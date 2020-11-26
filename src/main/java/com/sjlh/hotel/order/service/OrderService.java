@@ -15,11 +15,13 @@ import com.sjlh.hotel.order.dto.res.SimpleRes;
 import com.sjlh.hotel.order.entity.DrpOrder;
 import com.sjlh.hotel.order.entity.DrpOrderDetail;
 import com.sjlh.hotel.order.entity.OrderCustomerInfo;
+import com.sjlh.hotel.order.entity.QunarOrderQuery;
 import com.sjlh.hotel.order.feign.client.QunarServiceFeignClient;
 import com.sjlh.hotel.order.kafka.service.KafkaProducerService;
 import com.sjlh.hotel.order.repository.DrpOrderDetailRepository;
 import com.sjlh.hotel.order.repository.DrpOrderRepository;
 import com.sjlh.hotel.order.repository.OrderCustomerInfoRepository;
+import com.sjlh.hotel.order.repository.QunarOrderQueryRepository;
 import com.sjlh.hotel.qunar.core.ArrangeType;
 import com.sjlh.hotel.qunar.core.OrderOpt;
 import com.sjlh.hotel.qunar.core.QunarService;
@@ -68,29 +70,44 @@ public class OrderService {
     @Autowired
     private KafkaProducerService kafkaProducerService;
 
+    @Autowired
+    private QunarOrderQueryRepository qunarOrderQueryRepository;
+
     public final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 同步qunar订单，放在消息中
+     * 获取8分钟内的订单从Qunar同步到自己的系统中，放在消息中
      */
     public void getOrders() {
         try {
+            QunarOrderQuery qunarOrderQuery = qunarOrderQueryRepository.getOne(1);
+            if(LocalDateTime.now().compareTo(qunarOrderQuery.getToDateTime())<0){
+                return;
+            }
             QueryOrderRequestDto queryOrderRequestDto = new QueryOrderRequestDto();
-            queryOrderRequestDto.setFromDate(LocalDateTime.now().plusMinutes(-5));
-            queryOrderRequestDto.setToDate(LocalDateTime.now());
+            queryOrderRequestDto.setFromDate(qunarOrderQuery.getFromDateTime());
+            queryOrderRequestDto.setToDate(qunarOrderQuery.getToDateTime());
+            queryOrderRequestDto.setVersion(qunarOrderQuery.getVersion());
             //获取去哪儿订单
             logger.info("调用去哪儿查询订单，请求参数queryOrderRequestDto===" + objectMapper.writeValueAsString(queryOrderRequestDto));
             QueryOrderResponseDto queryOrderResponseDto = qunarService.queryOrderList(queryOrderRequestDto);
             logger.info("调用去哪儿查询订单，请求参数queryOrderResponseDto===" + objectMapper.writeValueAsString(queryOrderResponseDto));
 
-            if (queryOrderResponseDto != null && queryOrderResponseDto.getRet() && queryOrderResponseDto.getData().size()>0) {
-                List<OrderInfoResponseDto> qunarOrderInfoDtos = queryOrderResponseDto.getData();
-                //获取已确认状态的订单
-                qunarOrderInfoDtos.stream().filter(q -> q.getStatusCode() == 5).collect(Collectors.toList());
+            if (queryOrderResponseDto != null && queryOrderResponseDto.getRet()) {
+                if(queryOrderResponseDto.getData().size()>0){
+                    List<OrderInfoResponseDto> qunarOrderInfoDtos = queryOrderResponseDto.getData();
+                    //获取已确认状态的订单
+                    qunarOrderInfoDtos.stream().filter(q -> q.getStatusCode() == 5).collect(Collectors.toList());
 
-                //发送数据到消息队列
-                logger.info("发送数据到消息队列，qunarOrderInfoDtos===" + objectMapper.writeValueAsString(qunarOrderInfoDtos));
-                kafkaProducerService.sendMessageSync("qunarOrders", qunarOrderInfoDtos);
+                    //发送数据到消息队列
+                    logger.info("发送数据到消息队列qunarOrders，qunarOrderInfoDtos===" + objectMapper.writeValueAsString(qunarOrderInfoDtos));
+                    kafkaProducerService.sendMessageSync("qunarOrders", qunarOrderInfoDtos);
+                }
+
+                qunarOrderQuery.setFromDateTime(qunarOrderQuery.getToDateTime().plusSeconds(-1));
+                qunarOrderQuery.setToDateTime(qunarOrderQuery.getToDateTime().plusMinutes(8));
+                //更新
+                qunarOrderQueryRepository.save(qunarOrderQuery);
             }
 
         } catch (Exception e) {
@@ -324,7 +341,7 @@ public class OrderService {
             //订单操作类型推送给qunar
             optOrder(order, opt, money);
         } catch (Exception e) {
-            logger.error("创建订单异常！" + e.getMessage());
+            logger.error("创建订单异常！otaOrderNo:" + orderInfoResponseDto.getOrderNum());
             e.printStackTrace();
         }
     }
