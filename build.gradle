@@ -13,10 +13,12 @@ plugins {
 	id 'groovy'
 	id 'org.springframework.cloud.contract' version '2.2.4.RELEASE'
 	id 'maven-publish'
+	id "com.google.cloud.tools.jib" version "2.6.0"
 }
 
 ext {
 	set('springCloudVersion', "Hoxton.SR8")
+	set('artifactId', "qunar-order")
 }
 
 configurations {
@@ -24,6 +26,26 @@ configurations {
 		extendsFrom annotationProcessor
 	}
 }
+
+jib {
+	from {
+		image = 'harbor.mvmyun.com/library/openjdk:11.0.7-jre-slim'
+	}
+	to {
+		image = "harbor.mvmyun.com/hotel/${artifactId}"
+		tags = ['latest', "${project.version}"]
+		auth {
+			username = 'dev' // Defined in 'gradle.properties'.
+			password = 'Dev123456'
+		}
+	}
+	container {
+		creationTime = 'USE_CURRENT_TIMESTAMP'
+		jvmFlags = ['-Duser.timezone=Asia/Shanghai', '-Djava.security.egd=file:/dev/./urandom']
+	}
+	allowInsecureRegistries = true
+}
+
 
 group = 'com.sjlh.qunar'
 version = '0.0.1-SNAPSHOT'
