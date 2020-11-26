@@ -80,7 +80,7 @@ public class OrderService {
      */
     public void getOrders() {
         try {
-            QunarOrderQuery qunarOrderQuery = qunarOrderQueryRepository.getOne(1);
+            QunarOrderQuery qunarOrderQuery = qunarOrderQueryRepository.findById(1).get();
             if(LocalDateTime.now().compareTo(qunarOrderQuery.getToDateTime())<0){
                 return;
             }
