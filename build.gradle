@@ -27,6 +27,10 @@ configurations {
 	}
 }
 
+group = 'com.sjlh.qunar'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
 jib {
 	from {
 		image = 'harbor.mvmyun.com/library/openjdk:11.0.7-jre-slim'
@@ -45,11 +49,6 @@ jib {
 	}
 	allowInsecureRegistries = true
 }
-
-
-group = 'com.sjlh.qunar'
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
 
 repositories {
 	maven {
