@@ -46,8 +46,8 @@ eureka:
     registry:
     hostname: localhost
   client:
-    enabled: false
-    registerWithEureka: false
+    enabled: true
+    registerWithEureka: true
     serviceUrl:
 #      defaultZone: http://192.168.1.110:8761/eureka/
       defaultZone: http://apollo-dev.mvmyun.com/
