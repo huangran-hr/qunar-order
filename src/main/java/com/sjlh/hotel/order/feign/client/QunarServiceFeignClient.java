@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
  * @Date 2020/11/17 10:41
  * @Description:
  */
-@FeignClient(name="qunar-service")
+@FeignClient(name="${hotel-qunar-api-name}")
 public interface QunarServiceFeignClient {
     /**
      * 获取产品信息

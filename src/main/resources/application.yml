@@ -72,6 +72,8 @@ crs:
   protocol: https
   host: mvm-drp-crs-dev.mvmyun.com/crs/order/
 
+hotel-qunar-api-name: hotel-qunar-api
+
 #健康检查
 management:
   endpoints:
