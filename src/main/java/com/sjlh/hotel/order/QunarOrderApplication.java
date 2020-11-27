@@ -17,7 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  */
 @EnableFeignClients
-@EnableEurekaClient
+//@EnableEurekaClient
 @EnableQunarClient
 @EnableCrsOrderClient
 @EnableScheduling
