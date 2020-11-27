@@ -31,12 +31,17 @@ group = 'com.sjlh.qunar'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
+
+def releaseTime() {
+	return new Date().getTime();
+}
+
 jib {
 	from {
 		image = 'harbor.mvmyun.com/library/openjdk:11.0.7-jre-slim'
 	}
 	to {
-		image = "harbor.mvmyun.com/hotel/${artifactId}"
+		image = "harbor.mvmyun.com/hotel/${artifactId}:${releaseTime()}"
 		tags = ['latest', "${project.version}"]
 		auth {
 			username = 'dev' // Defined in 'gradle.properties'.
