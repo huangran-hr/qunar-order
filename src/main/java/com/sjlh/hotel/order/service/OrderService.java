@@ -105,7 +105,7 @@ public class OrderService {
                 }
 
                 qunarOrderQuery.setFromDateTime(qunarOrderQuery.getToDateTime().plusSeconds(-1));
-                qunarOrderQuery.setToDateTime(qunarOrderQuery.getToDateTime().plusMinutes(8));
+                qunarOrderQuery.setToDateTime(qunarOrderQuery.getToDateTime().plusMinutes(8)); //指定查询8分钟的订单
                 //更新
                 qunarOrderQueryRepository.save(qunarOrderQuery);
             }
