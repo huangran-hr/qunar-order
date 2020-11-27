@@ -18,7 +18,7 @@ plugins {
 
 ext {
 	set('springCloudVersion', "Hoxton.SR8")
-	set('artifactId', "qunar-order")
+	set('artifactId', "hotel-qunar-order")
 }
 
 configurations {
