@@ -41,8 +41,8 @@ jib {
 		image = 'harbor.mvmyun.com/library/openjdk:11.0.7-jre-slim'
 	}
 	to {
-		image = "harbor.mvmyun.com/hotel/${artifactId}:${releaseTime()}"
-		tags = ['latest', "${project.version}"]
+		image = "harbor.mvmyun.com/hotel/${artifactId}}"
+		tags = ['latest', "${project.version}-${releaseTime()}"]
 		auth {
 			username = 'dev' // Defined in 'gradle.properties'.
 			password = 'Dev123456'
