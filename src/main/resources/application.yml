@@ -41,18 +41,18 @@ info:
     name: qunar-order
     version: 0.0.1.SNAPSHOT
 
-#eureka:
-#  instance:
-#    registry:
-#    hostname: localhost
-#  client:
-#    enabled: false
-#    registerWithEureka: false
-#    serviceUrl:
-#      #defaultZone: http://192.168.1.110:8761/eureka/
-#      defaultZone: http://apollo-dev.mvmyun.com/
-#    healthcheck:
-#      enabled: true
+eureka:
+  instance:
+    registry:
+    hostname: localhost
+  client:
+    enabled: false
+    registerWithEureka: false
+    serviceUrl:
+#      defaultZone: http://192.168.1.110:8761/eureka/
+      defaultZone: http://apollo-dev.mvmyun.com/
+    healthcheck:
+      enabled: true
 
 com:
   sjlh:

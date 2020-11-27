@@ -71,16 +71,16 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-hateoas'
 	implementation 'org.springframework.cloud:spring-cloud-starter-sleuth'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-//	implementation ('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client') {
-//		exclude group: 'javax.ws.rs'
-//	}
+	implementation ('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client') {
+		exclude group: 'javax.ws.rs'
+	}
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'com.sjlh.springmvc:springmvc-log:0.0.1-SNAPSHOT'
 	implementation 'com.sjlh.qunar:qunar-client-spring:0.0.3'
 	implementation 'com.sjlh.hotel:crs-client:0.0.2'
-	implementation 'org.springframework.cloud:spring-cloud-kubernetes-core'
-	implementation 'org.springframework.cloud:spring-cloud-kubernetes-discovery'
-	implementation 'org.springframework.cloud:spring-cloud-starter-kubernetes-ribbon'
+//	implementation 'org.springframework.cloud:spring-cloud-kubernetes-core'
+//	implementation 'org.springframework.cloud:spring-cloud-kubernetes-discovery'
+//	implementation 'org.springframework.cloud:spring-cloud-starter-kubernetes-ribbon'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'mysql:mysql-connector-java'
 	runtimeOnly 'org.springframework.kafka:spring-kafka'
