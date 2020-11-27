@@ -1,2 +1,2 @@
 
-springboot+eureka+gradle+jib+gitlab
+springboot+eureka+kafka+gradle+jib+gitlab
