@@ -1,5 +1,5 @@
 server:
-  port: 6889
+  port: 8080
 spring:
   application:
     name: qunar-order
@@ -49,7 +49,8 @@ eureka:
     enabled: true
     registerWithEureka: true
     serviceUrl:
-      defaultZone: http://192.168.1.110:8761/eureka/
+      #defaultZone: http://192.168.1.110:8761/eureka/
+      defaultZone: http://apollo-dev.mvmyun.com/
     healthcheck:
       enabled: true
 com:
@@ -68,7 +69,8 @@ qunar:
 
 # mvm-drp-crs url
 crs:
-  host: 192.168.1.104:8080/crs/order/
+  protocol: https
+  host: mvm-drp-crs-dev.mvmyun.com/crs/order/
 
 #健康检查
 management:
