@@ -71,9 +71,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-hateoas'
 	implementation 'org.springframework.cloud:spring-cloud-starter-sleuth'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation ('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client') {
-		exclude group: 'javax.ws.rs'
-	}
+//	implementation ('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client') {
+//		exclude group: 'javax.ws.rs'
+//	}
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'com.sjlh.springmvc:springmvc-log:0.0.1-SNAPSHOT'
 	implementation 'com.sjlh.qunar:qunar-client-spring:0.0.3'
