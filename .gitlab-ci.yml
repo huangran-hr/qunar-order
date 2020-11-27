@@ -1,0 +1,7 @@
+build_image:
+  stage: build
+  only:
+    - master
+  script:
+    - echo dev
+    - gradle jib
