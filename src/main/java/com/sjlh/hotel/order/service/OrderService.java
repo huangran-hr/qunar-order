@@ -6,12 +6,10 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.sjlh.hotel.crs.core.CrsOrderService;
 import com.sjlh.hotel.crs.model.*;
 import com.sjlh.hotel.order.core.ResStatus;
+import com.sjlh.hotel.order.dto.req.DrpOrderReq;
 import com.sjlh.hotel.order.dto.req.PayReq;
 import com.sjlh.hotel.order.dto.req.ProductReq;
-import com.sjlh.hotel.order.dto.res.DailyInfoRes;
-import com.sjlh.hotel.order.dto.res.EveryDayPrice;
-import com.sjlh.hotel.order.dto.res.ProductInfoRes;
-import com.sjlh.hotel.order.dto.res.SimpleRes;
+import com.sjlh.hotel.order.dto.res.*;
 import com.sjlh.hotel.order.entity.DrpOrder;
 import com.sjlh.hotel.order.entity.DrpOrderDetail;
 import com.sjlh.hotel.order.entity.OrderCustomerInfo;
@@ -29,14 +27,22 @@ import com.sjlh.hotel.qunar.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import java.awt.geom.RoundRectangle2D;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.math.BigDecimal;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 /**
@@ -488,5 +494,114 @@ public class OrderService {
             sb.append(ran1);
         }
         return sb.toString();
+    }
+
+    /**
+     * 查询订单列表
+     * @param drpOrderReq
+     * @return
+     */
+    public List<DrpOrderRes> queryDrpOrderList(DrpOrderReq drpOrderReq) {
+
+        List<DrpOrderRes> drpOrderResList = new ArrayList<>();
+        List<DrpOrder> drpOrderList;
+        // 构造自定义查询条件
+        Specification querySpeci = (Specification) (root, criteriaQuery, criteriaBuilder) -> {
+            List<Predicate> predicateList = new ArrayList<>();
+            if(drpOrderReq != null){
+                if (drpOrderReq.getOrderNo() != null) {
+                    predicateList.add(criteriaBuilder.like(root.get("orderNo"), "%" + drpOrderReq.getOrderNo() + "%"));
+                }
+                if (drpOrderReq.getOtaOrderNo() != null) {
+                    predicateList.add(criteriaBuilder.like(root.get("otaOrderNo"), "%" + drpOrderReq.getOtaOrderNo() + "%"));//模糊查询
+                }
+                if (drpOrderReq.getStatus() != null) {
+                    predicateList.add(criteriaBuilder.equal(root.get("status"), drpOrderReq.getStatus()));
+                }
+                if (drpOrderReq.getHotelName() != null) {
+                    predicateList.add(criteriaBuilder.like(root.get("hotelName"), "%" + drpOrderReq.getHotelName() + "%"));
+                }
+                if (drpOrderReq.getCreateStartTime() != null) {
+                    predicateList.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createTime"), drpOrderReq.getCreateStartTime()));
+                }
+                if (drpOrderReq.getCreateEndTime() != null) {
+                    predicateList.add(criteriaBuilder.equal(root.get("createTime"), "%" + drpOrderReq.getCreateEndTime() + "%"));
+                }
+            }
+            return criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()]));
+        };
+        int pageNo = 0;
+        int pageSize = 0;
+        if(drpOrderReq != null){
+            pageNo = drpOrderReq.getPageNo();
+            pageSize = drpOrderReq.getPageSize();
+        }
+
+        if(pageNo == 0 && pageSize == 0){
+            drpOrderList = drpOrderRepository.findAll(querySpeci, Sort.by(Sort.Direction.DESC, "createTime"));
+        } else {
+            drpOrderList = drpOrderRepository.findAll(querySpeci,PageRequest.of(pageNo - 1, pageSize, Sort.by(Sort.Direction.DESC, "createTime"))).getContent();
+        }
+
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        drpOrderList.forEach(d -> {
+            DrpOrderRes drpOrderRes = new DrpOrderRes();
+            drpOrderRes.setChannelCode(d.getChannelCode());
+            drpOrderRes.setConfirmNo(d.getConfirmNo());
+            drpOrderRes.setCheckinStatus(d.getCheckinStatus());
+            drpOrderRes.setContactName(d.getContactName());
+            drpOrderRes.setHotelCode(d.getHotelCode());
+            drpOrderRes.setHotelType(d.getHotelType());
+            drpOrderRes.setId(d.getId());
+            drpOrderRes.setOrderFloorMoney(d.getOrderFloorMoney());
+            drpOrderRes.setOrderNo(d.getOrderNo());
+            drpOrderRes.setOtaOrderNo(d.getOtaOrderNo());
+            drpOrderRes.setPayMoney(d.getPayMoney());
+            drpOrderRes.setPayNo(d.getPayNo());
+            drpOrderRes.setPayType(d.getPayType());
+            drpOrderRes.setPhone(d.getPhone());
+            drpOrderRes.setPmsConfirmNo(d.getPmsConfirmNo());
+            drpOrderRes.setProductName(d.getProductName());
+            drpOrderRes.setRatePlanCode(d.getRatePlanCode());
+            drpOrderRes.setRemark(d.getRemark());
+            drpOrderRes.setRoomCount(d.getRoomCount());
+            drpOrderRes.setRoomTypeCode(d.getRoomTypeCode());
+            drpOrderRes.setRoomTypeName(d.getRoomTypeName());
+            drpOrderRes.setStatus(d.getStatus());
+            drpOrderRes.setTotalMoney(d.getTotalMoney());
+            drpOrderRes.setCashAdvanceType(d.getCashAdvanceType());
+            drpOrderRes.setCheckinDate(d.getCheckinDate().toString());
+            drpOrderRes.setCheckoutDate(d.getCheckoutDate().toString());
+            drpOrderRes.setCreateTime(df.format(d.getCreateTime()));
+            drpOrderRes.setUpdateTime(df.format(d.getUpdateTime()));
+            drpOrderResList.add(drpOrderRes);
+        });
+
+        return drpOrderResList;
+    }
+
+    /**
+     * 取消订单
+     * @param orderId
+     */
+    public void cancelOrder(String orderId) throws JsonProcessingException {
+        DrpOrder drpOrder = drpOrderRepository.findById(Long.decode(orderId)).get();
+        logger.info("cancelOrder，更新订单前=====" + objectMapper.writeValueAsString(drpOrder));
+        drpOrder.setStatus(6);
+        drpOrder.setUpdateTime(LocalDateTime.now());
+
+        //更新
+        drpOrderRepository.save(drpOrder);
+        logger.info("cancelOrder，更新订单后=====" + objectMapper.writeValueAsString(drpOrder));
+
+//        PayReq payRefundReq = new PayReq();
+//        payRefundReq.setOrderId(Integer.decode(drpOrder.getId().toString()));
+//        payRefundReq.setOrderSn(drpOrder.getOrderNo());
+//        payRefundReq.setMoney(drpOrder.getPayMoney());
+//        //退款
+//        logger.info("cancelOrder，退款入参=====" + objectMapper.writeValueAsString(payRefundReq));
+//        SimpleRes payRefundRes = qunarServiceFeignClient.payRefund(payRefundReq);
+//        logger.info("cancelOrder，退款响应=====" + objectMapper.writeValueAsString(payRefundRes));
     }
 }

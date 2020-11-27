@@ -1,9 +1,12 @@
 package com.sjlh.hotel.order.controller;
 
+import com.sjlh.hotel.order.dto.req.DrpOrderReq;
+import com.sjlh.hotel.order.dto.res.DrpOrderRes;
+import com.sjlh.hotel.order.dto.res.SimpleRes;
 import com.sjlh.hotel.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 /**
  * @Auther: HR
@@ -50,5 +53,41 @@ public class OrderController {
     public String optOrderPush(){
         orderService.optOrderPush();
         return "SUCCESS";
+    }
+
+
+    /**
+     * 查询订单列表
+     * @param drpOrderReq
+     * @return
+     */
+    @RequestMapping(value = "order/list", method = RequestMethod.POST)
+    @ResponseBody
+    public List<DrpOrderRes> queryDrpOrderList(@RequestBody DrpOrderReq drpOrderReq){
+
+        List<DrpOrderRes> DrpOrderList = orderService.queryDrpOrderList(drpOrderReq);
+
+        return DrpOrderList;
+    }
+
+    /**
+     * 取消订单
+     * @param orderId
+     * @return
+     */
+    @RequestMapping(value = "order/cancel/{orderId}", method = RequestMethod.GET)
+    @ResponseBody
+    public SimpleRes cancelOrder(@PathVariable String orderId){
+        SimpleRes simpleRes = new SimpleRes();
+        simpleRes.setCode(200);
+        simpleRes.setMessage("取消成功！");
+        try {
+            orderService.cancelOrder(orderId);
+        } catch (Exception e){
+            simpleRes.setCode(201);
+            simpleRes.setMessage("取消失败！");
+            e.printStackTrace();
+        }
+        return simpleRes;
     }
 }
