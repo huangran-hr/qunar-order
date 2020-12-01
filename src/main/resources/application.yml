@@ -1,5 +1,17 @@
 server:
   port: 8080
+
+# #使用apollo配置中心 (如果使用，apollo中的key需要写成 spring.application.name 这种格式，所有配置只需要在apollo配置中心配好就行了，此文件中相应的配置可以直接注释掉)
+# apollo:
+#   # meta: http://apollo-pro.mvmyun.com 本地启动使用VM arguments吧 -Dapollo.configService=http://apollo-dev.mvmyun.com -Denv=DEV
+#   bootstrap:
+#     enabled: true
+#     namespaces: application
+#     eagerLoad:
+#       enabled: true
+#   cluster: default
+#   autoUpdateInjectedSpringProperties: true
+
 spring:
   application:
     name: qunar-order
