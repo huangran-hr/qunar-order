@@ -53,18 +53,18 @@ info:
     name: qunar-order
     version: 0.0.1.SNAPSHOT
 
-eureka:
-  instance:
-    registry:
-    hostname: localhost
-  client:
-    enabled: true
-    registerWithEureka: true
-    serviceUrl:
-      defaultZone: http://192.168.1.110:8761/eureka/
-#      defaultZone: http://apollo-dev.mvmyun.com/
-    healthcheck:
-      enabled: true
+# eureka:
+#   instance:
+#     registry:
+#     hostname: localhost
+#   client:
+#     enabled: true
+#     registerWithEureka: true
+#     serviceUrl:
+#       defaultZone: http://192.168.1.110:8761/eureka/
+# #      defaultZone: http://apollo-dev.mvmyun.com/
+#     healthcheck:
+#       enabled: true
 
 com:
   sjlh:
@@ -86,6 +86,7 @@ crs:
   host: mvm-drp-crs-dev.mvmyun.com/crs/order/
 
 hotel-qunar-api-name: hotel-qunar-api
+hotel-qunar-api-url: hotel-qunar-api
 
 #健康检查
 management:
