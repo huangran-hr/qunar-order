@@ -6,6 +6,7 @@ server:
 #   # meta: http://apollo-pro.mvmyun.com 本地启动使用VM arguments吧 -Dapollo.configService=http://apollo-dev.mvmyun.com -Denv=DEV
 #   bootstrap:
 #     enabled: true
+#     #apollo中 namespaces
 #     namespaces: application
 #     eagerLoad:
 #       enabled: true
@@ -45,9 +46,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: com.sjlh.hotel.order.serialization.JacksonSerialization
 
-
+#apollo 中AppId
 app:
   id: qunar-order
+  
 info:
   app:
     name: qunar-order
