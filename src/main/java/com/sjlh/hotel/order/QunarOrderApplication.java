@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableCrsOrderClient
 @EnableScheduling
 @EnableKafka
+@EnableApolloConfig
 @SpringBootApplication
 public class QunarOrderApplication {
 	/**
