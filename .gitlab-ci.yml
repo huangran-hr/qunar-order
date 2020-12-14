@@ -1,7 +1,30 @@
+# build_image:
+#   stage: build
+#   only:
+#     - master
+#   script:
+#     - echo dev
+#     - gradle jib
+
+variables:
+  K8S_ENVIRONMENT: dev
+  APPLICATION: hotel-qunar-order
+#before_script:
+#    - export GRADLE_USER_HOME=`pwd`/.gradle
 build_image:
   stage: build
   only:
     - master
   script:
-    - echo dev
+    - echo ${APPLICATION}
     - gradle jib
+  cache:
+    paths:
+      - .gradle/
+deploy_live:
+  stage: deploy
+  only:
+    - master
+  script:
+    - kubectl patch deployment ${APPLICATION} -n hotel --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"myki\":\"$(date +'%s')\"}}}}}"
+
