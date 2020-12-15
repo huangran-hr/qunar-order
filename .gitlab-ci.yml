@@ -9,6 +9,10 @@
 variables:
   K8S_ENVIRONMENT: dev
   APPLICATION: hotel-qunar-order
+  #仓库用户
+  CONTAINER_REPO_USERNAME: ${HARBOR_REPO_USERNAME}
+  #仓库密码
+  CONTAINER_REPO_PASSWORD: ${HARBOR_REPO_PASSWORD}
 #before_script:
 #    - export GRADLE_USER_HOME=`pwd`/.gradle
 build_image:
@@ -17,14 +21,15 @@ build_image:
     - master
   script:
     - echo ${APPLICATION}
-    - gradle jib
-  cache:
-    paths:
-      - .gradle/
+    - gradle jib --refresh-dependencies
+#  cache:
+#    paths:
+#      - .gradle/
 deploy_live:
   stage: deploy
   only:
     - master
   script:
     - kubectl patch deployment ${APPLICATION} -n hotel --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"myki\":\"$(date +'%s')\"}}}}}"
+
 
