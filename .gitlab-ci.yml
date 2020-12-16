@@ -21,7 +21,7 @@ build_image:
     - master
   script:
     - echo ${APPLICATION}
-    - gradle jib --refresh-dependencies
+    - gradle jib
 #  cache:
 #    paths:
 #      - .gradle/
