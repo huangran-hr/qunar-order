@@ -19,6 +19,11 @@ plugins {
 ext {
 	set('springCloudVersion', "Hoxton.SR8")
 	set('artifactId', "hotel-qunar-order")
+	set('HARBOR_HOST', "${findProperty('pro') ? 'registry.cn-beijing.aliyuncs.com' : 'harbor.mvmyun.com'}") // project arg
+	//set('username', System.getProperty("username")) // jvm arg
+	//set('password', "${findProperty('password')}")
+	set('username', System.getenv("CONTAINER_REPO_USERNAME")) //System env variable
+	set('password', System.getenv("CONTAINER_REPO_PASSWORD"))
 }
 
 configurations {
@@ -33,7 +38,7 @@ sourceCompatibility = '11'
 
 
 def releaseTime() {
-	return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("GMT+08:00"))
+	return new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone("GMT+08:00"))
 }
 
 jib {
@@ -41,12 +46,12 @@ jib {
 		image = 'harbor.mvmyun.com/library/openjdk:11.0.7-jre-slim'
 	}
 	to {
-		image = "harbor.mvmyun.com/hotel/${artifactId}"
+		image = "${HARBOR_HOST}/hotel/${artifactId}"
 		tags = ['latest', "${project.version}-${releaseTime()}"]
-		auth {
-			username = 'dev' // Defined in 'gradle.properties'.
-			password = 'Dev123456'
-		}
+        auth {
+            username = System.getenv("CONTAINER_REPO_USERNAME") // Defined in 'gradle.properties'.
+            password = System.getenv("CONTAINER_REPO_PASSWORD")
+        }
 	}
 	container {
 		creationTime = 'USE_CURRENT_TIMESTAMP'
