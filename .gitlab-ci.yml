@@ -1,30 +1,31 @@
-# build_image:
-#   stage: build
-#   only:
-#     - master
-#   script:
-#     - echo dev
-#     - gradle jib
+#导入公共模板
+include:
+  #远程仓库方式构建导入
+  - remote: 'https://gitlab.mvmyun.com/devops/gitlabci-templates/raw/master/jobs/build.yml'
+  #项目仓库方式编译导入
+  - project: 'devops/gitlabci-templates'
+    ref: master
+    file: 'jobs/deploy.yml'
 
+#环境变量
 variables:
+  #发版dev测试环境
   K8S_ENVIRONMENT: dev
+  #发版应用
   APPLICATION: hotel-qunar-order
-#before_script:
-#    - export GRADLE_USER_HOME=`pwd`/.gradle
-build_image:
-  stage: build
-  only:
-    - master
-  script:
-    - echo ${APPLICATION}
-    - gradle jib
-  cache:
-    paths:
-      - .gradle/
-deploy_live:
-  stage: deploy
-  only:
-    - master
-  script:
-    - kubectl patch deployment ${APPLICATION} -n hotel --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"myki\":\"$(date +'%s')\"}}}}}"
+  #镜像仓库用户
+  CONTAINER_REPO_USERNAME: ${HARBOR_REPO_USERNAME}
+  #镜像仓库密码
+  CONTAINER_REPO_PASSWORD: ${HARBOR_REPO_PASSWORD}
+  #mvn_deploy,mvn_install,gradle编译工具
+  BUILD_TOOL: gradle
 
+#运行前设置获取变量
+before_script:
+  - export APP_TAG="${CI_COMMIT_TAG:-${CI_COMMIT_SHA::8}}"
+
+
+#定义流程
+stages:
+  - build
+  - deploy
