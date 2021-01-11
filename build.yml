@@ -1,0 +1,84 @@
+#环境变量
+variables:
+  #发版dev测试环境
+  K8S_ENVIRONMENT: dev
+  Environment: dev
+  #发版应用
+  APPLICATION: app-demo
+  #容器仓库用户密码
+  CONTAINER_REPO_USERNAME: ${HARBOR_REPO_USERNAME}
+  CONTAINER_REPO_PASSWORD: ${HARBOR_REPO_PASSWORD}
+  #CONTAINER_REPO_USERNAME: (if [ "${CI_COMMIT_TAG}" == "" ]; then "${ALIYUN_REPO_USERNAME}}";else ${HARBOR_REPO_USERNAME};fi);
+  #CONTAINER_REPO_PASSWORD: (if [ "${CI_COMMIT_TAG}" == "" ]; then "${ALIYUN_REPO_USERNAME}}";else ${HARBOR_REPO_PASSWORD};fi);
+  #阿里云仓库
+  ALIYUN_REPO_USERNAME: ${ALIYUN_REPO_USERNAME}
+  ALIYUN_REPO_PASSWORD: ${ALIYUN_REPO_PASSWORD}
+  #mvn_deploy,mvn_install,gradle编译工具
+  BUILD_TOOL: gradle
+
+#运行前设置获取变量
+before_script:
+  - export APP_TAG="${CI_COMMIT_TAG:-${CI_COMMIT_SHA::8}}"
+  - if [ "$CI_COMMIT_TAG" == "" ];then export CONTAINER_TAG="${CI_COMMIT_REF_NAME}";elif [ "$CI_COMMIT_TAG" != "" ];then export CONTAINER_TAG="${CI_COMMIT_TAG}";fi
+
+#gradle编译
+build_image_gradle:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH  ==  "master" && $BUILD_TOOL == "gradle" '
+  tags:
+    - jks
+  script:
+    - echo ${APPLICATION}
+    - gradle jib  
+
+#推送nexus的jar包
+build_image_mvn_deploy:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH  ==  "master" && $BUILD_TOOL == "mvn_deploy"'
+  tags:
+    - jks
+  script:
+    - echo ${APPLICATION}
+    - mvn -B -q -gs $HOME/settings.xml clean deploy
+
+#mvn编译
+build_image_mvn_install:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH  ==  "master" && $BUILD_TOOL == "mvn_install"'
+  tags:
+    - jks
+  script:
+    - echo ${APPLICATION}
+    - mvn -version
+    - mvn -B -q -gs $HOME/settings.xml -Pdev package -Dmaven.test.skip=true
+
+#阿里云打包gradle编译
+build_aliyun_image_gradle:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_TAG !~ "/^$/" && $BUILD_TOOL == "gradle" '
+  variables:
+    CONTAINER_REPO_USERNAME: hi31813309@aliyun.com
+    CONTAINER_REPO_PASSWORD: xiaofan@1
+  tags:
+    - jks
+  script:
+    - echo ${APPLICATION}
+    - echo ${CI_COMMIT_TAG}
+    - echo ${CI_COMMIT_REF_NAME}
+    - gradle --stacktrace jib -Ppro
+
+#阿里云mvn编译
+build_aliyun_image_mvn:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_TAG !~ "/^$/" && $BUILD_TOOL == "mvn_install"'
+  tags:
+    - jks
+  script:
+    - echo ${APPLICATION}
+    - mvn -version
+    - mvn -B -q -gs $HOME/settings.xml -Ppro package -Dmaven.test.skip=true    
